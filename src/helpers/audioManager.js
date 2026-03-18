@@ -75,6 +75,7 @@ class AudioManager {
     this.onError = null;
     this.onTranscriptionComplete = null;
     this.onPartialTranscript = null;
+    this.onAudioLevel = null;
     this.cachedApiKey = null;
     this.cachedApiKeyProvider = null;
 
@@ -176,12 +177,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     onTranscriptionComplete,
     onPartialTranscript,
     onStreamingCommit,
+    onAudioLevel,
   }) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onTranscriptionComplete = onTranscriptionComplete;
     this.onPartialTranscript = onPartialTranscript;
     this.onStreamingCommit = onStreamingCommit;
+    this.onAudioLevel = onAudioLevel;
   }
 
   setSkipReasoning(skip) {
@@ -362,6 +365,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           }
           const rms = Math.sqrt(sum / dataArray.length);
           if (rms > this._peakRms) this._peakRms = rms;
+          if (typeof this.onAudioLevel === 'function') {
+            this.onAudioLevel(rms);
+          }
         }, 100);
       } catch (e) {
         logger.warn("Silence detection setup failed, skipping", { error: e.message }, "audio");
@@ -2756,6 +2762,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     this.onTranscriptionComplete = null;
     this.onPartialTranscript = null;
     this.onStreamingCommit = null;
+    this.onAudioLevel = null;
     if (this._onApiKeyChanged) {
       window.removeEventListener("api-key-changed", this._onApiKeyChanged);
     }
