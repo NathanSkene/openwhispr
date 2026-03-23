@@ -311,7 +311,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (v === "bottom-right" || v === "center" || v === "bottom-left") return v;
     return "bottom-right" as const;
   })(),
-  keepTranscriptionInClipboard: readBoolean("keepTranscriptionInClipboard", true),
+  keepTranscriptionInClipboard: readBoolean("keepTranscriptionInClipboard", false),
   isSignedIn: readBoolean("isSignedIn", false),
 
   agentModel: readString("agentModel", "openai/gpt-oss-120b"),
@@ -521,12 +521,44 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setAgentModel: createStringSetter("agentModel"),
   setAgentProvider: createStringSetter("agentProvider"),
   setAgentKey: (key: string) => {
-    if (isBrowser) localStorage.setItem("agentKey", key);
-    useSettingsStore.setState({ agentKey: key });
-    if (isBrowser) {
-      window.electronAPI?.notifyAgentHotkeyChanged?.(key);
-      window.electronAPI?.saveAgentKey?.(key);
+    if (!isBrowser) {
+      useSettingsStore.setState({ agentKey: key });
+      return;
     }
+
+    const updateAgentHotkey = window.electronAPI?.updateAgentHotkey;
+    if (!updateAgentHotkey) {
+      localStorage.setItem("agentKey", key);
+      useSettingsStore.setState({ agentKey: key });
+      window.electronAPI?.saveAgentKey?.(key);
+      return;
+    }
+
+    const previousKey = get().agentKey;
+
+    void updateAgentHotkey(key)
+      .then((result) => {
+        if (!result?.success) {
+          localStorage.setItem("agentKey", previousKey);
+          useSettingsStore.setState({ agentKey: previousKey });
+          logger.warn(
+            "Failed to update agent hotkey",
+            { hotkey: key, message: result?.message },
+            "settings"
+          );
+          return;
+        }
+
+        localStorage.setItem("agentKey", key);
+        useSettingsStore.setState({ agentKey: key });
+      })
+      .catch((error) => {
+        logger.warn(
+          "Failed to update agent hotkey",
+          { hotkey: key, error: error instanceof Error ? error.message : String(error) },
+          "settings"
+        );
+      });
   },
   setAgentSystemPrompt: createStringSetter("agentSystemPrompt"),
   setAgentEnabled: createBooleanSetter("agentEnabled"),
