@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import AudioManager from "../helpers/audioManager";
 import logger from "../utils/logger";
 import { playStartCue, playStopCue } from "../utils/dictationCues";
-import { getSettings } from "../stores/settingsStore";
+import { getSettings, useSettingsStore } from "../stores/settingsStore";
 import { getRecordingErrorTitle } from "../utils/recordingErrors";
 
 export const useAudioRecording = (toast, options = {}) => {
@@ -17,6 +17,7 @@ export const useAudioRecording = (toast, options = {}) => {
   const startLockRef = useRef(false);
   const stopLockRef = useRef(false);
   const { onToggle } = options;
+  const maxDictationDurationSeconds = useSettingsStore((s) => s.maxDictationDurationSeconds);
 
   const performStartRecording = useCallback(async () => {
     if (startLockRef.current) return false;
@@ -251,6 +252,21 @@ export const useAudioRecording = (toast, options = {}) => {
       }
     };
   }, [toast, onToggle, performStartRecording, performStopRecording, t]);
+
+  useEffect(() => {
+    if (!isRecording || maxDictationDurationSeconds <= 0) return;
+
+    const timeoutId = setTimeout(() => {
+      logger.info(
+        "Max dictation duration reached; auto-stopping recording",
+        { maxDictationDurationSeconds },
+        "audio"
+      );
+      void performStopRecording();
+    }, maxDictationDurationSeconds * 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [isRecording, maxDictationDurationSeconds, performStopRecording]);
 
   const cancelRecording = async () => {
     if (audioManagerRef.current) {
