@@ -703,6 +703,8 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
     setKeepTranscriptionInClipboard,
     floatingIconAutoHide,
     setFloatingIconAutoHide,
+    showRecordingOverlay,
+    setShowRecordingOverlay,
     startMinimized,
     setStartMinimized,
     panelStartPosition,
@@ -2185,6 +2187,14 @@ export default function SettingsPage({ activeSection = "general" }: SettingsPage
                     description={t("settingsPage.general.floatingIcon.autoHideDescription")}
                   >
                     <Toggle checked={floatingIconAutoHide} onChange={setFloatingIconAutoHide} />
+                  </SettingsRow>
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <SettingsRow
+                    label="Show recording overlay"
+                    description="Show a floating overlay with audio waveform while recording"
+                  >
+                    <Toggle checked={showRecordingOverlay} onChange={setShowRecordingOverlay} />
                   </SettingsRow>
                 </SettingsPanelRow>
                 <SettingsPanelRow>
